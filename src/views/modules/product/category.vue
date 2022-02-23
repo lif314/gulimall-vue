@@ -8,7 +8,7 @@
     >
     </el-switch>
     <el-button v-if="draggable" @click="batchSave">批量保存</el-button>
-    <el-button @click="batchDelete">批量删除</el-button>
+    <el-button type="danger" @click="batchDelete">批量删除</el-button>
     <!-- element-ui Tree树形菜单 -->
     <!-- 
     show-checkbox： 节点是否可被选择 显示选择框
@@ -24,8 +24,8 @@
       :default-expanded-keys="expandedKey"
       :draggable="draggable"
       :allow-drop="allowDrop"
-      @node-drop="handleDrop"
       ref="menuTree"
+      @node-drop="handleDrop"
     >
       >
       <span class="custom-tree-node" slot-scope="{ node, data }">
@@ -370,6 +370,39 @@ export default {
         // this.pCid = 0;
       });
     },
+    // 批量删除
+    batchDelete() {
+      // (leafOnly, includeHalfChecked) 接收两个 boolean 类型的参数，1. 是否只是叶子节点，默认值为 `false` 2. 是否包含半选节点，默认值为 `false`
+      let checkedNodes = this.$refs.menuTree.getCheckedNodes();
+      let catIds = [];
+      // console.log("被选中的元素:",this.$refs.menuTree.getCheckedNode())
+      for (let i = 0; i < checkedNodes.length; i++) {
+        catIds.push(checkedNodes[i].catId);
+      }
+      // 删除前弹框提示
+      this.$confirm(`是否批量删除选中菜单?`, "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          this.$http({
+            url: this.$http.adornUrl("/product/category/delete"),
+            method: "post",
+            data: this.$http.adornData(catIds, false),
+          })
+            .then(({ data }) => {
+              this.$message({
+                type: "success",
+                message: "批量删除成功",
+              });
+              // 刷新菜单
+              this.getMenus();
+            })
+            .catch(() => {});
+        })
+        .catch(() => {});
+    },
     //   获取菜单 -- 发送请求模板
     getMenus() {
       this.$http({
@@ -382,35 +415,6 @@ export default {
       });
     },
   },
-  // 批量删除
-  batchDelete() {
-    // (leafOnly, includeHalfChecked) 接收两个 boolean 类型的参数，1. 是否只是叶子节点，默认值为 `false` 2. 是否包含半选节点，默认值为 `false`
-    let checkedNodes = this.$refs.menuTree.getCheckedNodes();
-    let catIds = [];
-    // console.log("被选中的元素:",this.$refs.menuTree.getCheckedNode())
-    for (let i = 0; i < checkedNodes.length; i++) {
-      catIds.push(checkedNodes[i].catId);
-    }
-    // 删除前弹框提示
-    this.$confirm(`是否批量删除选中菜单?`, "提示", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    }).then(() => {
-      this.$http({
-        url: this.$http.adornUrl("/product/category/delete"),
-        method: "post",
-        data: this.$http.adornData(catIds, false),
-      }).then(({ data }) => {
-        this.$message({
-          type: "success",
-          message: "批量删除成功"
-        });
-        // 刷新菜单
-        this.getMenus();
-      });
-    });
-  },
   created() {
     this.getMenus();
   },
@@ -419,5 +423,3 @@ export default {
 
 <style scoped>
 </style>
-
-
