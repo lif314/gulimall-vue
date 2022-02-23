@@ -1,5 +1,14 @@
 <template>
   <div>
+    <!-- 拖拽功能 -->
+    <el-switch
+      v-model="draggable"
+      active-text="开启拖拽"
+      inactive-text="关闭拖拽"
+    >
+    </el-switch>
+    <el-button v-if="draggable" @click="batchSave">批量保存</el-button>
+    <el-button @click="batchDelete">批量删除</el-button>
     <!-- element-ui Tree树形菜单 -->
     <!-- 
     show-checkbox： 节点是否可被选择 显示选择框
@@ -13,8 +22,10 @@
       :props="defaultProps"
       :expand-on-click-node="false"
       :default-expanded-keys="expandedKey"
-      draggable
+      :draggable="draggable"
       :allow-drop="allowDrop"
+      @node-drop="handleDrop"
+      ref="menuTree"
     >
       >
       <span class="custom-tree-node" slot-scope="{ node, data }">
@@ -82,6 +93,9 @@ export default {
   directives: {},
   data() {
     return {
+      pCid: [], // 拖拽中使用的全局变量 -- 需要展开的父节点
+      draggable: false, // 开启/固安必拖拽功能
+      updateNodes: [], // 拖拽更新的节点
       maxLevel: 0, // 最大节点层级，拖拽效果
       dialogTitle: "", // 对话框标题
       dialogType: "", // 复用对话框 edit append
@@ -248,7 +262,7 @@ export default {
       // 当前节点，目标节点，哪个位置
       // 判断条件：被拖动的当前节点和所在父节点总层数不能大于3
       // 统计被拖动节点的总层数 maxLevel
-      this.countNodeLevel(draggingNode.data);
+      this.countNodeLevel(draggingNode);
       // 最大深度 -- 拖拽节点的层数
       let deep = this.maxLevel - draggingNode.data.catLevel + 1;
       this.maxLevel = 0; // 重置为0
@@ -258,20 +272,103 @@ export default {
       } else {
         return deep + dropNode.parent.level <= 3;
       }
-      
     },
     countNodeLevel(node) {
-      this.maxLevel = node.catLevel; // 解决四级拖拽Bug
+      this.maxLevel = node.level; // 解决四级拖拽Bug
       // 找到所有节点，求出最大深度 -- 有子节点，递归查询
-      if (node.children != null && node.children.length > 0) {
+      if (node.childNodes != null && node.childNodes.length > 0) {
         // 遍历子节点
         for (let i = 0; i < node.children.length; i++) {
-          if (node.children[i].catLevel > this.maxLevel) {
-            this.maxLevel = this.children[i].catLevel;
+          if (node.childNodes[i].level > this.maxLevel) {
+            this.maxLevel = this.childNodes[i].level;
           }
-          this.countNodeLevel(node.children[i]);
+          this.countNodeLevel(node.childNodes[i]);
         }
       }
+    },
+    // 处理拖拽成功事件
+    handleDrop(draggingNode, dropNode, dropType, ev) {
+      // console.log("tree drop: ", dropNode.label, dropType);
+      // 1、当前节点最新的父节点id
+      let siblings = null;
+      let pCid = 0;
+      if (dropType == "before" || dropType == "after") {
+        // 拖拽到的节点没有子级菜单
+        // 如果称为根级菜单，则父id为null
+        pCid =
+          dropNode.parent.data.catId == undefined
+            ? null
+            : dropNode.parent.data.catId;
+        // 兄弟节点收集后重新排序
+        siblings = dropNode.parent.childNodes;
+      } else {
+        // 叶子菜单
+        pCid = dropNode.data.catId;
+        siblings = dropNode.childNodes;
+      }
+
+      this.pCid.push(pCid);
+      // 2、当前拖拽节点的最新排序
+      for (let i = 0; i < siblings.length; i++) {
+        // 整理兄弟节点顺序后包装为对象发给后端
+        // 拖拽节点可能导致父子关系变化
+        if (siblings[i].data.catId == draggingNode.data.catId) {
+          // 如果遍历的是当前正在拖拽的节点
+          let catLevel = draggingNode.level;
+          if (siblings[i].level != draggingNode.level) {
+            // 当前节点的层级发生变化
+            catLevel = siblings[i].level;
+            // 修改子节点的层级
+            this.updateChildNodeLevel(siblings[i]);
+          }
+          // 需要更改父id
+          this.updateNodes.push({
+            catId: siblings[i].data.catId,
+            sort: i,
+            parentCid: pCid,
+          });
+        } else {
+          this.updateNodes.push({ catId: siblings[i].data.catId, sort: i });
+        }
+      }
+      // 3、当前拖拽节点的最新层级
+    },
+    // 修改子节点的层级
+    updateChildNodeLevel(node) {
+      if (node.childNodes.length > 0) {
+        for (let i = 0; i < node.length; i++) {
+          var cNode = node.childNodes[i].data;
+          // 更新层级id和level
+          this.updateNodes.push({
+            catId: cNode.catId,
+            catLevel: node.childNodes[i].level,
+          });
+          // 递归子节点
+          this.updateChildNodeLevel(node.childNodes[i]);
+        }
+      }
+    },
+    // 批量保存
+    batchSave() {
+      // 发送给后端
+      this.$http({
+        url: this.$http.adornUrl("product/category/update/sort"),
+        method: "post",
+        data: this.$http.adornData(this.updateNodes, false),
+      }).then(({ data }) => {
+        this.$message({
+          message: "菜单层级拖拽成功！",
+          type: success,
+        });
+        // 刷新菜单
+        this.getMenus();
+        // 设置默认展开菜单，上一次拖拽的菜单
+        this.expandedKey = this.pCid;
+        // 清空历史数据
+        this.updateNodes = [];
+        this.maxLevel = 0;
+        // this.pCid = 0;
+      });
     },
     //   获取菜单 -- 发送请求模板
     getMenus() {
@@ -284,6 +381,35 @@ export default {
         this.menus = data.data;
       });
     },
+  },
+  // 批量删除
+  batchDelete() {
+    // (leafOnly, includeHalfChecked) 接收两个 boolean 类型的参数，1. 是否只是叶子节点，默认值为 `false` 2. 是否包含半选节点，默认值为 `false`
+    let checkedNodes = this.$refs.menuTree.getCheckedNodes();
+    let catIds = [];
+    // console.log("被选中的元素:",this.$refs.menuTree.getCheckedNode())
+    for (let i = 0; i < checkedNodes.length; i++) {
+      catIds.push(checkedNodes[i].catId);
+    }
+    // 删除前弹框提示
+    this.$confirm(`是否批量删除选中菜单?`, "提示", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    }).then(() => {
+      this.$http({
+        url: this.$http.adornUrl("/product/category/delete"),
+        method: "post",
+        data: this.$http.adornData(catIds, false),
+      }).then(({ data }) => {
+        this.$message({
+          type: "success",
+          message: "批量删除成功"
+        });
+        // 刷新菜单
+        this.getMenus();
+      });
+    });
   },
   created() {
     this.getMenus();
