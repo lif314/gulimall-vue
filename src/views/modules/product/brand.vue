@@ -63,6 +63,18 @@
         align="center"
         label="品牌logo地址"
       >
+        <template slot-scope="scope">
+          <img :src="scope.row.logo"  style="width: 80px; height: 80px">
+          <!-- 该版本没有Image组件 -->
+          <!-- <el-image
+            style="width: 100px; height: 80px"
+            :src="scope.row.logo"
+            fit="contain"
+          ></el-image> -->
+        
+          <!-- <i class="el-icon-time"></i>
+          <span style="margin-left: 10px">{{ scope.row.date }}</span> -->
+        </template>
       </el-table-column>
       <el-table-column
         prop="descript"
@@ -78,8 +90,8 @@
         label="显示状态"
       >
         <!-- 使用slot-scope自定义显示效果 -->
+        <!-- Switch开关：通过slot-scope绑定显示状态-->
         <template slot-scope="scope">
-          <!-- Switch开关：通过slot-scope绑定显示状态-->
           <el-switch
             v-model="scope.row.showStatus"
             active-color="#13ce66"
@@ -171,26 +183,6 @@ export default {
     this.getDataList();
   },
   methods: {
-    // 监听开关状态 -- 传递整行数据
-    updateBrandStatus(data) {
-      // console.log("data:", rowData)
-      // 只需要发送id和状态 -- 解构
-      let { brandId, showStatus } = data;
-      // 发送请求修改状态
-      this.$http({
-        url: this.$http.adornUrl("product/brand/update"),
-        method: "post",
-        data: this.$http.adornData(
-          { brandId, showStatus: showStatus ? 1 : 0 },
-          false
-        ),
-      }).then(({ data }) => {
-        this.$message({
-          type: "sucess",
-          message: "状态修改成功",
-        });
-      });
-    },
     // 获取数据列表
     getDataList() {
       this.dataListLoading = true;
@@ -211,6 +203,26 @@ export default {
           this.totalPage = 0;
         }
         this.dataListLoading = false;
+      });
+    },
+    // 监听开关状态 -- 传递整行数据
+    updateBrandStatus(data) {
+      console.log("最新状态:", data);
+      // 只需要发送id和状态 -- 解构
+      let { brandId, showStatus } = data;
+      // 发送请求修改状态
+      this.$http({
+        url: this.$http.adornUrl("/product/brand/update"),
+        method: "post",
+        data: this.$http.adornData(
+          { brandId, showStatus: showStatus ? 1 : 0 },
+          false
+        ),
+      }).then(({ data }) => {
+        this.$message({
+          type: "success",
+          message: "状态修改成功",
+        });
       });
     },
     // 每页数
