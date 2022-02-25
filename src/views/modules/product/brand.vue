@@ -64,7 +64,7 @@
         label="品牌logo地址"
       >
         <template slot-scope="scope">
-          <img :src="scope.row.logo"  style="width: 80px; height: 80px">
+          <img :src="scope.row.logo"  style="width: 100px; height: 100px">
           <!-- 该版本没有Image组件 -->
           <!-- <el-image
             style="width: 100px; height: 80px"
@@ -209,13 +209,13 @@ export default {
     updateBrandStatus(data) {
       console.log("最新状态:", data);
       // 只需要发送id和状态 -- 解构
-      let { brandId, showStatus } = data;
+      let { brandId,name,showStatus } = data;
       // 发送请求修改状态
       this.$http({
         url: this.$http.adornUrl("/product/brand/update"),
         method: "post",
         data: this.$http.adornData(
-          { brandId, showStatus: showStatus ? 1 : 0 },
+          { brandId, name, showStatus: showStatus ? 1 : 0 },
           false
         ),
       }).then(({ data }) => {
