@@ -223,17 +223,18 @@ export default {
       dataForm: {
         key: "",
       },
+      brandId: 0,
+      catelogPath: [],
       dataList: [],
+      cateRelationTableData: [],
       pageIndex: 1,
       pageSize: 10,
       totalPage: 0,
       dataListLoading: false,
       dataListSelections: [],
       addOrUpdateVisible: false,
-      cateRelationDialogVisible: false,  // 显示关联对话框
-      cateRelationTableData: [],
-      brandId: null,
-
+      cateRelationDialogVisible: false,
+      popCatelogSelectVisible: false
     };
   },
   components: {
@@ -243,7 +244,29 @@ export default {
     this.getDataList();
   },
   methods: {
-    // 关联分类
+    // 添加关联分类表
+    addCatelogSelect() {
+      //{"brandId":1,"catelogId":2}
+      this.popCatelogSelectVisible =false;
+      this.$http({
+        url: this.$http.adornUrl("/product/categorybrandrelation/save"),
+        method: "post",
+        data: this.$http.adornData({brandId:this.brandId,catelogId:this.catelogPath[this.catelogPath.length-1]}, false)
+      }).then(({ data }) => {
+        this.getCateRelation();
+      });
+    },
+    // 移除关联分类表
+    deleteCateRelationHandle(id, brandId) {
+      this.$http({
+        url: this.$http.adornUrl("/product/categorybrandrelation/delete"),
+        method: "post",
+        data: this.$http.adornData([id], false)
+      }).then(({ data }) => {
+        this.getCateRelation();
+      });
+    },
+    // 添加关联分类
     updateCatelogHandle(brandId) {
       this.cateRelationDialogVisible = true;
       this.brandId = brandId;
@@ -254,8 +277,8 @@ export default {
         url: this.$http.adornUrl("/product/categorybrandrelation/catelog/list"),
         method: "get",
         params: this.$http.adornParams({
-          brandId: this.brandId,
-        }),
+          brandId: this.brandId
+        })
       }).then(({ data }) => {
         this.cateRelationTableData = data.data;
       });

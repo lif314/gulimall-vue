@@ -30,7 +30,7 @@
       <el-form-item label="所属分类" prop="catelogId">
         <el-cascader
           v-model="dataForm.catelogPath"
-           placeholder="试试搜索：手机"
+          placeholder="试试搜索：手机"
           :options="categories"
           :props="props"
           filterable
