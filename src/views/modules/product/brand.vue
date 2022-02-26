@@ -64,14 +64,14 @@
         label="品牌logo地址"
       >
         <template slot-scope="scope">
-          <img :src="scope.row.logo"  style="width: 100px; height: 100px">
+          <img :src="scope.row.logo" style="width: 100px; height: 100px" />
           <!-- 该版本没有Image组件 -->
           <!-- <el-image
             style="width: 100px; height: 80px"
             :src="scope.row.logo"
             fit="contain"
           ></el-image> -->
-        
+
           <!-- <i class="el-icon-time"></i>
           <span style="margin-left: 10px">{{ scope.row.date }}</span> -->
         </template>
@@ -128,6 +128,12 @@
           <el-button
             type="text"
             size="small"
+            @click="updateCatelogHandle(scope.row.brandId)"
+            >关联</el-button
+          >
+          <el-button
+            type="text"
+            size="small"
             @click="addOrUpdateHandle(scope.row.brandId)"
             >修改</el-button
           >
@@ -156,11 +162,61 @@
       ref="addOrUpdate"
       @refreshDataList="getDataList"
     ></add-or-update>
+    <!-- 关联分类对话框 -->
+    <el-dialog
+      title="关联分类"
+      :visible.sync="cateRelationDialogVisible"
+      width="30%"
+    >
+      <el-popover placement="right-end" v-model="popCatelogSelectVisible">
+        <category-cascader :catelogPath.sync="catelogPath"></category-cascader>
+        <div style="text-align: right; margin: 0">
+          <el-button
+            size="mini"
+            type="text"
+            @click="popCatelogSelectVisible = false"
+            >取消</el-button
+          >
+          <el-button type="primary" size="mini" @click="addCatelogSelect"
+            >确定</el-button
+          >
+        </div>
+        <el-button slot="reference">新增关联</el-button>
+      </el-popover>
+      <el-table :data="cateRelationTableData" style="width: 100%">
+        <el-table-column prop="id" label="#"></el-table-column>
+        <el-table-column prop="brandName" label="品牌名"></el-table-column>
+        <el-table-column prop="catelogName" label="分类名"></el-table-column>
+        <el-table-column
+          fixed="right"
+          header-align="center"
+          align="center"
+          label="操作"
+        >
+          <template slot-scope="scope">
+            <el-button
+              type="text"
+              size="small"
+              @click="deleteCateRelationHandle(scope.row.id, scope.row.brandId)"
+              >移除</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="cateRelationDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="cateRelationDialogVisible = false"
+          >确 定</el-button
+        >
+      </span>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import AddOrUpdate from "./brand-add-or-update";
+import categoryCascader from "../common/category-cascader"
+
 export default {
   data() {
     return {
@@ -174,15 +230,36 @@ export default {
       dataListLoading: false,
       dataListSelections: [],
       addOrUpdateVisible: false,
+      cateRelationDialogVisible: false,  // 显示关联对话框
+      cateRelationTableData: [],
+      brandId: null,
+
     };
   },
   components: {
-    AddOrUpdate,
+    AddOrUpdate, categoryCascader
   },
   activated() {
     this.getDataList();
   },
   methods: {
+    // 关联分类
+    updateCatelogHandle(brandId) {
+      this.cateRelationDialogVisible = true;
+      this.brandId = brandId;
+      this.getCateRelation();
+    },
+    getCateRelation() {
+      this.$http({
+        url: this.$http.adornUrl("/product/categorybrandrelation/catelog/list"),
+        method: "get",
+        params: this.$http.adornParams({
+          brandId: this.brandId,
+        }),
+      }).then(({ data }) => {
+        this.cateRelationTableData = data.data;
+      });
+    },
     // 获取数据列表
     getDataList() {
       this.dataListLoading = true;
@@ -209,7 +286,7 @@ export default {
     updateBrandStatus(data) {
       console.log("最新状态:", data);
       // 只需要发送id和状态 -- 解构
-      let { brandId,name,showStatus } = data;
+      let { brandId, name, showStatus } = data;
       // 发送请求修改状态
       this.$http({
         url: this.$http.adornUrl("/product/brand/update"),

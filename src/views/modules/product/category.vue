@@ -38,7 +38,7 @@
             size="mini"
             @click="() => append(data)"
           >
-            Append
+            添加
           </el-button>
           <!-- 只用子菜单才显示delete -->
           <el-button
@@ -47,11 +47,11 @@
             size="mini"
             @click="() => remove(node, data)"
           >
-            Delete
+            删除
           </el-button>
           <!-- 任意菜单可以进行修改 -->
           <el-button type="text" size="mini" @click="() => edit(data)">
-            Edit
+            修改
           </el-button>
         </span>
       </span>
