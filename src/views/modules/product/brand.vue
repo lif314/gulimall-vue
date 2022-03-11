@@ -64,7 +64,7 @@
         label="品牌logo地址"
       >
         <template slot-scope="scope">
-          <img :src="scope.row.logo" style="width: 100px; height: 100px" />
+          <img :src="scope.row.logo" style="width: 102px; height: 36px" />
           <!-- 该版本没有Image组件 -->
           <!-- <el-image
             style="width: 100px; height: 80px"
