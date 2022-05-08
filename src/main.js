@@ -11,6 +11,8 @@ import httpRequest from '@/utils/httpRequest' // api: https://github.com/axios/a
 import { isAuth } from '@/utils'
 import cloneDeep from 'lodash/cloneDeep'
 import PubSub from 'pubsub-js'
+import moment from 'moment'
+Vue.prototype.$moment = moment //添加到Vue实例中以便全局使用
 
 Vue.use(VueCookie)
 Vue.config.productionTip = false
